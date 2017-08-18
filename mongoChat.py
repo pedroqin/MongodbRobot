@@ -59,9 +59,10 @@ def tuling_reply(msg):
     if msg['Content'].startswith('$'):
         if msg['Content'][1:]=='menu':
             return mongodb.myMenu()
+        elif msg['Content'][1:].startswith('inscmd:'):
+            return mongodb.insertMenuByU(msg['Content'][8:])
         else:
             return mongodb.findCommand(msg['Content'][1:])
-            
             
             
     defaultReply = u'I received: ' + msg['Content']
@@ -116,7 +117,7 @@ def test_function():
 
 
 
-
+mongodb.insertCommand(info.mongoIni)
 #itchat.auto_login(hotReload=True,enableCmdQR=2) 
 itchat.auto_login(hotReload=True) 
 thread.start_new_thread(itchat.run,())
