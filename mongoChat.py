@@ -10,6 +10,7 @@ import commands
 import os
 import mongodb
 import info
+from  sign_in import *
 #tuling
 
 #this is your key
@@ -73,13 +74,66 @@ def tuling_reply(msg):
 ########Group Chat########
 @itchat.msg_register(TEXT,isGroupChat=True)
 def group_reply(msg):
+    dailyLogMsg(msg["User"]["NickName"])#accumulate group 's message sum
+    perNum(msg["ActualNickName"],msg["User"]["NickName"])#accumulate group everyone message sum
+    if msg['User']["NickName"] in wechatGroupMem:
+        if msg['ActualNickName']!=info.adminName:
+            return 
+        else:
+            if msg['Content']=="打开群聊":
+                wechatGroupMem.remove(msg['User']["NickName"])
+                itchat.send(u'@%s\u2005 Reboot robot Successfully !' % msg['ActualNickName'],msg['FromUserName'])
+            else:
+                return
+    if msg['Content']=="关闭群聊":
+        if msg['ActualNickName']==info.adminName:
+            wechatGroup=msg['FromUserName']
+            wechatGroupMem.add(msg['User']["NickName"])
+            itchat.send(u'@%s\u2005 Shutdown robot Successfully !' % msg['ActualNickName'],msg['FromUserName'])
+    if msg['Content']=="签到" or msg['Content']=="qiandao" or msg['Content']=="簽到":
+        result=signIn(msg['ActualNickName'],msg['User']["NickName"])
+        if result == "False" :
+            itchat.send(u'@%s\u2005 您今天已经签过到啦，不用重复签哦~' % (msg['ActualNickName']),msg['FromUserName'])
+        else:
+		#if result[0].isdigit():
+            itchat.send(u'签到成功！\n @%s\u2005 ,您是今天第%s个签到的，已累计签到%s天' % (msg['ActualNickName'],result[1],result[0]),msg['FromUserName'])
+#        else :
+ #           itchat.send(u'@%s\u2005 啊咧~签到失败，请稍后再试' % (msg['ActualNickName']),msg['FromUserName'])
+#        itchat.send(u'@%s\u2005I received: %s' % (msg['ActualNickName'],msg['Content']),msg['FromUserName'])
+#        defaultReply = 'I received: ' + msg['Text']
+
+#####my robot name :  @robot_P len=8
+#    if msg['Content'][(len(info.robotName)+2):]=="昨日统计":
+    if msg['Content']=="昨日发言统计":
+        day=datetime.date.today()-datetime.timedelta(days=1)#yesterday 's date
+        countStr="%s日 发言排行: \n名次\t   昵称\t   发言数\n" % day.strftime('%Y-%b-%d')
+        i=1
+        for member in listGroup(day.strftime('%b-%d-%y'),msg['User']['NickName']):
+            countStr=countStr +'第'+str(i)+'名'+':'+ member["name"] + '\t' + str(member["number"]) +'\n'
+            i+=1
+        itchat.send(u'%s' % countStr,msg['FromUserName'])
+
+#    elif msg['Content'][(len(info.robotName)+2):]=="今日统计" or msg['Content'][(len(info.robotName)+2):]=="统计":
+    elif msg['Content']=="今日发言统计" or msg['Content']=="发言统计":
+        day=datetime.date.today()
+        countStr="%s日 发言排行: \n名次\t   昵称\t   发言数\n" % day.strftime('%Y-%b-%d')
+        i=1
+        for member in listGroup(day.strftime('%b-%d-%y'),msg['User']['NickName']):
+            countStr=countStr +'第'+str(i)+'名'+':'+ member["name"] + '\t' + str(member["number"]) +'\n'
+            i+=1
+        itchat.send(u'%s' % countStr,msg['FromUserName'])
+        
     if msg['isAt']:
-        defaultReply = u'I received: ' + msg['Content']
+        reply = get_response(msg['Content'][(len(info.robotName)+2):])
+        itchat.send(u'@%s\u2005 %s' % (msg['ActualNickName'],reply),msg['FromUserName'])
+    return #### need it,dont del it !!!!!!!!!!!!!!
+#    if msg['isAt']:
+#        defaultReply = u'I received: ' + msg['Content']
 #itchat.get_friends(update=True)   获取好友列表，首位为自己
 #弃用，效率低，每次需要获取好友列表，后续改进：分析 msg 内容，获取本机器人名称，在此暂时为手动设置
 #        reply = get_response(msg['Content'][(len(itchat.get_friends(update=True)[0]['NickName'])+2):])
-        reply = get_response(msg['Content'][(len(info.robotName)+2):])
-        return reply or defaultReply
+#        reply = get_response(msg['Content'][(len(info.robotName)+2):])
+#        return reply or defaultReply
         
 
 
@@ -118,6 +172,7 @@ def test_function():
 
 
 mongodb.insertCommand(info.mongoIni)
+wechatGroupMem=set()
 #itchat.auto_login(hotReload=True,enableCmdQR=2) 
 itchat.auto_login(hotReload=True) 
 thread.start_new_thread(itchat.run,())

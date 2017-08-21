@@ -6,11 +6,11 @@ import datetime
 import commands
 import info
 #create line
-client=Client('mongodb://root:123456@127.0.0.1:27017/')
+client=Client(info.commandClient)
 #connect to database
-db=client.mongodb
+db=client[info.commandDatabase]
 #collections
-menu=db.menu
+menu=db[info.commandCollections]
 #print db.collection_names()
 
 
